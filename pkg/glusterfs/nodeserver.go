@@ -65,20 +65,15 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	mo := req.GetVolumeCapability().GetMount().GetMountFlags()
-
 	if req.GetReadonly() {
 		mo = append(mo, "ro")
 	}
-	gs := req.GetVolumeAttributes()["glusterserver"]
+        /* For 'block' we will use 'loopback' driver */
+        mo = append(mo, "loop")
 
-	if req.VolumeCapability == nil {
-		return nil, status.Error(codes.InvalidArgument, "NodePublishVolume Volume Capability must be provided")
-	}
+        srcFile := req.GetVolumeAttributes()["file-name"]
 
-	ep := req.GetVolumeAttributes()["glustervol"]
-	source := fmt.Sprintf("%s:%s", gs, ep)
-
-	err = glusterMounter.Mount(source, targetPath, "glusterfs", mo)
+	err = glusterMounter.Mount(srcFile, targetPath, "xfs", mo)
 	if err != nil {
 		if os.IsPermission(err) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
